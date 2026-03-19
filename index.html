@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스냅스 폰케이스 S26 오픈 추이 분석</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--border:#1e293b;
+  --text:#e2e8f0;--text-muted:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;--pink:#ec4899;--cyan:#06b6d4;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.dashboard{max-width:1400px;margin:0 auto;padding:24px;}
+.header{margin-bottom:28px;}
+.header h1{font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header p{color:var(--text-muted);font-size:13px;margin-top:6px;}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:4px;}
+.tag-s26{background:#1a3a5f;color:#60a5fa;}
+.tag-galaxy{background:#1a2f4a;color:#7dd3fc;}
+.tag-iphone{background:#3b1f1f;color:#f87171;}
+.tag-launch{background:#2a1f3b;color:#c084fc;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi:nth-child(1)::before{background:var(--accent);}
+.kpi:nth-child(2)::before{background:var(--green);}
+.kpi:nth-child(3)::before{background:var(--accent2);}
+.kpi:nth-child(4)::before{background:var(--orange);}
+.kpi-label{font-size:11px;color:var(--text-muted);font-weight:500;margin-bottom:10px;}
+.kpi-row-pair{display:flex;gap:12px;align-items:flex-end;}
+.kpi-col{flex:1;}
+.kpi-col-label{font-size:10px;color:var(--text-muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px;}
+.kpi-val-big{font-size:28px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1.1;}
+.kpi-val-sm{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-muted);line-height:1.1;}
+.kpi-change{font-size:12px;font-weight:700;margin-top:6px;}
+.kpi-change.up{color:var(--green);}
+.kpi-divider{width:1px;background:var(--border);align-self:stretch;margin:0 4px;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.card-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.chart-wrap{position:relative;height:280px;}
+.chart-wrap-sm{position:relative;height:220px;}
+.chart-wrap-xs{position:relative;height:180px;}
+
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:7px 10px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border);font-size:11px;}
+td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);}
+td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;}
+tr:hover td{background:rgba(59,130,246,0.05);}
+
+.insight-box{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:14px;}
+.insight-box h3{font-size:13px;font-weight:700;margin-bottom:6px;}
+.insight-box p{font-size:12px;color:var(--text-muted);line-height:1.7;}
+.insight-box .hl{color:var(--text);font-weight:600;}
+
+.section-title{font-size:17px;font-weight:800;margin:28px 0 14px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+.bar-h{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.bar-h-label{font-size:11px;width:130px;text-align:right;color:var(--text-muted);flex-shrink:0;}
+.bar-h-track{flex:1;height:20px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.bar-h-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;min-width:40px;}
+.bar-h-val{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);width:120px;flex-shrink:0;text-align:right;}
+
+.legend-row{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);}
+.legend-swatch{width:12px;height:12px;border-radius:3px;}
+
+.launch-banner{background:linear-gradient(135deg,#0f1a2e,#1a2542);border:1px solid #1e3a6e;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;}
+.launch-icon{font-size:24px;flex-shrink:0;}
+.launch-text{flex:1;}
+.launch-text strong{color:#60a5fa;font-size:13px;}
+.launch-text p{color:var(--text-muted);font-size:11px;margin-top:3px;}
+.launch-badge{background:#1e3a6e;color:#60a5fa;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0;}
+
+.spike-banner{background:linear-gradient(135deg,#1a1400,#2a1f00);border:1px solid #3d2e00;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--orange);}
+
+@media(max-width:900px){.kpi-grid,.grid-2,.grid-3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <h1>스냅스 폰케이스 S26 출시 오픈 추이 분석</h1>
+    <p>분석 기간: 2026.03.01 ~ 2026.03.18 | S26 기종 오픈: 3/11(수) | 데이터 기준: 3/19(목) 12:00</p>
+    <div style="margin-top:8px">
+      <span class="tag tag-s26">S26</span> 갤럭시 S26 / S26+ / S26 Ultra (신규 오픈)
+      <span class="tag tag-galaxy" style="margin-left:8px">기존 갤럭시</span> S22~S25 / Z Flip·Fold 시리즈
+      <span class="tag tag-iphone" style="margin-left:8px">iPhone</span> 아이폰 전 시리즈
+    </div>
+  </div>
+
+  <!-- Launch Banner -->
+  <div class="launch-banner">
+    <div class="launch-icon">📱</div>
+    <div class="launch-text">
+      <strong>Galaxy S26 시리즈 폰케이스 오픈 — 3/11(수)</strong>
+      <p>S26 기본 / S26+ / S26 Ultra 3종 동시 오픈. 오픈 직후 전체 폰케이스 카테고리 일평균 주문이 25건 → 45건으로 상승하며 순증 효과 확인.</p>
+    </div>
+    <div class="launch-badge">LAUNCH +8일</div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">일평균 주문건수</div>
+      <div class="kpi-row-pair">
+        <div class="kpi-col">
+          <div class="kpi-col-label">오픈 전 (3/1~10)</div>
+          <div class="kpi-val-sm">25건</div>
+        </div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-col">
+          <div class="kpi-col-label">오픈 후 (3/11~18)</div>
+          <div class="kpi-val-big">45건</div>
+        </div>
+      </div>
+      <div class="kpi-change up">+80% ↑</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">일평균 매출 (실결제)</div>
+      <div class="kpi-row-pair">
+        <div class="kpi-col">
+          <div class="kpi-col-label">오픈 전 (3/1~10)</div>
+          <div class="kpi-val-sm">246만</div>
+        </div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-col">
+          <div class="kpi-col-label">오픈 후 (3/11~18)</div>
+          <div class="kpi-val-big">422만</div>
+        </div>
+      </div>
+      <div class="kpi-change up">+71% ↑</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">S26 누적 (8일)</div>
+      <div class="kpi-row-pair">
+        <div class="kpi-col">
+          <div class="kpi-col-label">주문건수</div>
+          <div class="kpi-val-big">84건</div>
+        </div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-col">
+          <div class="kpi-col-label">누적 매출</div>
+          <div class="kpi-val-big" style="font-size:20px">721만</div>
+        </div>
+      </div>
+      <div class="kpi-change" style="color:var(--accent2)">전체 오픈後 매출의 21.4% 기여</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">기존 모델 카니발라이제이션</div>
+      <div class="kpi-row-pair">
+        <div class="kpi-col">
+          <div class="kpi-col-label">기존 갤럭시 일평균</div>
+          <div class="kpi-val-sm">12.3→18.4</div>
+        </div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-col">
+          <div class="kpi-col-label">iPhone 일평균</div>
+          <div class="kpi-val-sm">9.9→13.4</div>
+        </div>
+      </div>
+      <div class="kpi-change up">기존 모델도 동반 상승 — 순증 확인 ✓</div>
+    </div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-box">
+    <h3 style="color:var(--accent)">핵심 인사이트</h3>
+    <p>
+      S26 오픈 후 8일간 전체 폰케이스 일평균이 <span class="hl">+80% 상승</span>했으며, 이는 S26 신규 수요(21.4%) + 기존 모델 동반 상승(기존 갤럭시 +50%, iPhone +35%)으로 구성됩니다.
+      기존 모델이 함께 올라간 점은 <span class="hl">S26 출시 이슈가 폰케이스 카테고리 전반의 유입을 끌어올린</span> 긍정 시그널입니다.
+      다만 <span class="hl">3/18(수) S26 비중 45.3% 급등</span>과 3/12(목) 스파이크의 구조적 원인(외부 바이럴·단체주문 여부) 확인이 필요합니다.
+    </p>
+  </div>
+
+  <!-- Daily Trend Chart -->
+  <div class="section-title">일별 매출 & 주문 추이</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="dot" style="background:var(--accent)"></div>일별 전체 매출(원) & 주문건수</div>
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(59,130,246,0.35)"></div>S26 오픈 前 매출</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(16,185,129,0.55)"></div>S26 오픈 後 매출</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b"></div>주문건수</div>
+      <div class="legend-item" style="margin-left:auto;color:#a78bfa;font-weight:600">▼ 3/11 S26 오픈</div>
+    </div>
+    <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+  </div>
+
+  <!-- Stacked composition + S26 ratio -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>일별 기종 구성 (건수 스택)</div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-swatch" style="background:#1d4ed8"></div>S26 신모델</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#60a5fa"></div>기존 갤럭시</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f87171"></div>iPhone</div>
+      </div>
+      <div class="chart-wrap-sm"><canvas id="stackChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--orange)"></div>S26 일별 주문건수 & 전체 비중</div>
+      <div class="chart-wrap-sm"><canvas id="s26Chart"></canvas></div>
+      <div class="spike-banner">⚠️ 3/15(일) 비중 4.9% 급감 — 주말 유입은 기존 모델 중심 패턴<br>⚠️ 3/18(수) 비중 45.3% 급등 — 3종 각 8건씩 동시 집중, 원인 확인 필요</div>
+    </div>
+  </div>
+
+  <!-- S26 model detail + brand split -->
+  <div class="section-title">S26 시리즈 & 브랜드 분석</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:#60a5fa)"></div>S26 3종 누적 비교 (3/11~18)</div>
+      <div style="padding:8px 0">
+        <div class="bar-h">
+          <div class="bar-h-label">S26 기본</div>
+          <div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:rgba(29,78,216,0.7)">28건</div></div>
+          <div class="bar-h-val">240,330원</div>
+        </div>
+        <div class="bar-h">
+          <div class="bar-h-label">S26+</div>
+          <div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:rgba(59,130,246,0.7)">28건</div></div>
+          <div class="bar-h-val">240,330원</div>
+        </div>
+        <div class="bar-h">
+          <div class="bar-h-label">S26 Ultra</div>
+          <div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:rgba(96,165,250,0.7)">28건</div></div>
+          <div class="bar-h-val">240,330원</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding:8px;background:var(--surface2);border-radius:6px;line-height:1.6">
+        💡 3종 <span style="color:var(--text);font-weight:600">완전 균등 수요</span> — S25 시리즈 Ultra 쏠림과 대조적.<br>
+        초기 탐색 단계 또는 3종 동시 노출 구조 영향 추정
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--cyan)"></div>브랜드 매출 비중 (3/1~18 전체)</div>
+      <div class="chart-wrap-xs"><canvas id="brandChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot" style="background:var(--green)"></div>S26 케이스 타입 분포 (누적)</div>
+      <div class="chart-wrap-xs"><canvas id="typeChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Device TOP ranking -->
+  <div class="section-title">기기별 매출 TOP 10 (3/1~3/14 기준)</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="dot" style="background:var(--orange)"></div>기기별 누적 매출 순위</div>
+    <div style="padding:4px 0">
+      <div class="bar-h"><div class="bar-h-label">S25 Ultra</div><div class="bar-h-track"><div class="bar-h-fill" style="width:100%;background:rgba(59,130,246,0.6)">44건</div></div><div class="bar-h-val">442,930원</div></div>
+      <div class="bar-h"><div class="bar-h-label">S25</div><div class="bar-h-track"><div class="bar-h-fill" style="width:64%;background:rgba(59,130,246,0.5)">27건</div></div><div class="bar-h-val">284,145원</div></div>
+      <div class="bar-h"><div class="bar-h-label" style="color:#f87171">iPhone 16 Pro</div><div class="bar-h-track"><div class="bar-h-fill" style="width:60%;background:rgba(239,68,68,0.5)">26건</div></div><div class="bar-h-val">266,015원</div></div>
+      <div class="bar-h"><div class="bar-h-label">S24</div><div class="bar-h-track"><div class="bar-h-fill" style="width:59%;background:rgba(59,130,246,0.5)">26건</div></div><div class="bar-h-val">260,895원</div></div>
+      <div class="bar-h"><div class="bar-h-label">S24 Ultra</div><div class="bar-h-track"><div class="bar-h-fill" style="width:44%;background:rgba(59,130,246,0.45)">20건</div></div><div class="bar-h-val">196,655원</div></div>
+      <div class="bar-h"><div class="bar-h-label" style="color:#f87171">iPhone 17 Pro</div><div class="bar-h-track"><div class="bar-h-fill" style="width:42%;background:rgba(239,68,68,0.45)">18건</div></div><div class="bar-h-val">185,385원</div></div>
+      <div class="bar-h"><div class="bar-h-label" style="color:#f87171">iPhone 17</div><div class="bar-h-track"><div class="bar-h-fill" style="width:39%;background:rgba(239,68,68,0.4)">18건</div></div><div class="bar-h-val">173,785원</div></div>
+      <div class="bar-h"><div class="bar-h-label">S25+</div><div class="bar-h-track"><div class="bar-h-fill" style="width:36%;background:rgba(59,130,246,0.4)">16건</div></div><div class="bar-h-val">161,065원</div></div>
+      <div class="bar-h"><div class="bar-h-label">S23 Ultra</div><div class="bar-h-track"><div class="bar-h-fill" style="width:36%;background:rgba(59,130,246,0.35)">17건</div></div><div class="bar-h-val">160,885원</div></div>
+      <div class="bar-h"><div class="bar-h-label">S23</div><div class="bar-h-track"><div class="bar-h-fill" style="width:32%;background:rgba(59,130,246,0.3)">16건</div></div><div class="bar-h-val">143,395원</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px">* 3/1~3/14 기간 기준. S26은 오픈 4일(3/11~14) 누적 39건으로 초기 랭킹 진입 중</div>
+  </div>
+
+  <!-- Case type overall -->
+  <div class="section-title">케이스 타입별 분석 (전체 기간 3/1~3/18)</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title"><div class="dot" style="background:var(--green)"></div>케이스 타입별 매출 (전체)</div>
+    <table>
+      <thead><tr><th>#</th><th>케이스 타입</th><th style="text-align:right">주문건수</th><th style="text-align:right">비중</th><th style="text-align:right">누적 매출</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>투명 범퍼 젤하드 케이스</td><td class="num">135건</td><td class="num">32.5%</td><td class="num">1,159,610원</td></tr>
+        <tr><td>2</td><td>맥세이프 투명 범퍼 젤하드 케이스</td><td class="num">86건</td><td class="num">20.7%</td><td class="num">1,016,565원</td></tr>
+        <tr><td>3</td><td>맥세이프 하드 케이스</td><td class="num">46건</td><td class="num">11.1%</td><td class="num">554,610원</td></tr>
+        <tr><td>4</td><td>하드 케이스</td><td class="num">43건</td><td class="num">10.4%</td><td class="num">361,350원</td></tr>
+        <tr><td>5</td><td>투명 젤리 (계열 합산)</td><td class="num">86건</td><td class="num">20.7%</td><td class="num">564,990원</td></tr>
+        <tr><td>6</td><td>크리스탈 하이브리드</td><td class="num">11건</td><td class="num">2.7%</td><td class="num">243,460원</td></tr>
+        <tr style="font-weight:700;border-top:2px solid var(--border)"><td></td><td>합계 (3/1~3/14 기준)</td><td class="num">415건</td><td class="num">100%</td><td class="num">3,996,285원</td></tr>
+      </tbody>
+    </table>
+    <div class="insight-box" style="margin-top:14px;border-left-color:var(--cyan)">
+      <h3 style="color:var(--cyan)">케이스 타입 인사이트</h3>
+      <p>
+        <span class="hl">범퍼 젤하드 계열(MagSafe 포함)이 매출의 53%</span>를 차지하며 압도적 1위 포지션.
+        MagSafe 버전이 일반 버전 대비 매출이 빠르게 추격 중 — S26에도 MagSafe 버전이 빠르게 안착(전체 S26 매출의 27.8%).
+        <span class="hl">크리스탈 하이브리드는 단가(25,900원)는 높으나 판매가 저조</span> — 노출/프로모션 전략 점검 또는 SKU 정리 검토 필요.
+      </p>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section-title">종합 분석 & Next Action</div>
+  <div class="grid-2">
+    <div class="insight-box" style="border-left-color:var(--green)">
+      <h3 style="color:var(--green)">긍정 시그널</h3>
+      <p>
+        1. S26 오픈 후 전체 폰케이스 일평균 <span class="hl">+80% 상승</span> — 기존 모델 카니발라이제이션 없이 순증 확인<br>
+        2. 기존 갤럭시(S23~S25) <span class="hl">+50%</span>, iPhone <span class="hl">+35%</span> 동반 상승 — 신모델 출시가 카테고리 전반 유입 증폭<br>
+        3. S26 오픈 후 8일간 누적 매출 <span class="hl">721만원, 전체의 21.4%</span> 즉시 점유<br>
+        4. MagSafe 케이스 수요 강세 — S26에서도 동일 패턴 확인 (MagSafe 비중 27.8%)
+      </p>
+    </div>
+    <div class="insight-box" style="border-left-color:var(--red)">
+      <h3 style="color:var(--red)">주의 & 모니터링</h3>
+      <p>
+        1. <span class="hl">S26 3종 균등 수요 지속 여부 추적</span> — S25 Ultra 쏠림 패턴 대비 이례적, Ultra 수요 집중 시점 포착 필요<br>
+        2. <span class="hl">3/18(수) S26 45% 스파이크 원인 파악</span> — 단체주문·바이럴·마케팅 집행 여부 확인<br>
+        3. <span class="hl">주말(토·일) S26 비중 저하</span> — 평일 구매 패턴 vs 주말 유입 유저 특성 차이 분석, 주말 프로모션 전략 검토<br>
+        4. <span class="hl">크리스탈 하이브리드 판매 부진</span> — 노출 부족인지 수요 없는지 구분 후 SKU 대응
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+Chart.defaults.color='#94a3b8';
+Chart.defaults.font.family="'Noto Sans KR','JetBrains Mono',sans-serif";
+Chart.defaults.font.size=11;
+
+const daily=[
+  {d:'03/01',rev:312425,cnt:29,s26:0},
+  {d:'03/02',rev:174385,cnt:16,s26:0},
+  {d:'03/03',rev:300560,cnt:29,s26:0},
+  {d:'03/04',rev:272755,cnt:26,s26:0},
+  {d:'03/05',rev:150005,cnt:16,s26:0},
+  {d:'03/06',rev:125200,cnt:14,s26:0},
+  {d:'03/07',rev:241125,cnt:25,s26:0},
+  {d:'03/08',rev:319060,cnt:34,s26:0},
+  {d:'03/09',rev:203540,cnt:23,s26:0},
+  {d:'03/10',rev:360855,cnt:38,s26:0},
+  {d:'03/11',rev:289400,cnt:30,s26:6},
+  {d:'03/12',rev:652345,cnt:71,s26:15},
+  {d:'03/13',rev:294905,cnt:32,s26:9},
+  {d:'03/14',rev:299725,cnt:32,s26:9},
+  {d:'03/15',rev:547315,cnt:61,s26:3},
+  {d:'03/16',rev:311040,cnt:35,s26:9},
+  {d:'03/17',rev:473420,cnt:47,s26:9},
+  {d:'03/18',rev:504070,cnt:53,s26:24}
+];
+const launchIdx=10;
+
+// Daily revenue + orders
+new Chart(document.getElementById('dailyChart'),{
+  type:'bar',
+  data:{
+    labels:daily.map(d=>d.d),
+    datasets:[
+      {label:'매출',data:daily.map(d=>Math.round(d.rev/10000)),
+       backgroundColor:daily.map((_,i)=>i>=launchIdx?'rgba(16,185,129,0.5)':'rgba(59,130,246,0.3)'),
+       borderColor:daily.map((_,i)=>i>=launchIdx?'rgba(16,185,129,0.7)':'rgba(59,130,246,0.5)'),
+       borderWidth:1,borderRadius:3,yAxisID:'y'},
+      {label:'주문건수',data:daily.map(d=>d.cnt),type:'line',
+       borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',
+       pointRadius:3,pointBackgroundColor:'#f59e0b',tension:.3,borderWidth:2,yAxisID:'y1'}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{maxRotation:0}},
+      y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'매출(만원)'}},
+      y1:{position:'right',grid:{display:false},title:{display:true,text:'주문건수'}}
+    }
+  },
+  plugins:[{afterDraw(c){
+    const x=c.scales.x.getPixelForValue(launchIdx);
+    const ctx=c.ctx;
+    ctx.save();
+    ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(x,c.chartArea.top);ctx.lineTo(x,c.chartArea.bottom);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#a78bfa';ctx.font='bold 11px Noto Sans KR';
+    ctx.fillText('S26 오픈',x+4,c.chartArea.top+14);
+    // avg line before launch
+    const avgY=c.scales.y.getPixelForValue(246000/10000);
+    ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(148,163,184,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(c.chartArea.left,avgY);ctx.lineTo(x-2,avgY);ctx.stroke();
+    ctx.restore();
+  }}]
+});
+
+// Stacked composition
+const galaxyCnt=[17,9,15,15,10,8,14,17,11,25,16,37,17,17,47,20,28,21];
+const iphoneCnt=[12,7,14,11,6,6,11,17,12,13,8,19,6,6,11,6,10,8];
+const s26Cnt=daily.map(d=>d.s26);
+
+new Chart(document.getElementById('stackChart'),{
+  type:'bar',
+  data:{
+    labels:daily.map(d=>d.d),
+    datasets:[
+      {label:'S26',data:s26Cnt,backgroundColor:'rgba(29,78,216,0.8)',stack:'s',borderRadius:0},
+      {label:'기존 갤럭시',data:galaxyCnt,backgroundColor:'rgba(96,165,250,0.55)',stack:'s',borderRadius:0},
+      {label:'iPhone',data:iphoneCnt,backgroundColor:'rgba(248,113,113,0.55)',stack:'s',borderRadius:0}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{stacked:true,grid:{color:'rgba(255,255,255,0.03)'},ticks:{maxRotation:0,font:{size:10}}},
+      y:{stacked:true,grid:{color:'rgba(255,255,255,0.05)'}}
+    }
+  },
+  plugins:[{afterDraw(c){
+    const x=c.scales.x.getPixelForValue(launchIdx);
+    const ctx=c.ctx;
+    ctx.save();
+    ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(x,c.chartArea.top);ctx.lineTo(x,c.chartArea.bottom);ctx.stroke();
+    ctx.restore();
+  }}]
+});
+
+// S26 daily + ratio
+const s26Ratio=[20.0,21.1,28.1,28.1,4.9,25.7,19.1,45.3];
+new Chart(document.getElementById('s26Chart'),{
+  type:'bar',
+  data:{
+    labels:['3/11','3/12','3/13','3/14','3/15','3/16','3/17','3/18'],
+    datasets:[
+      {label:'S26 주문건수',data:[6,15,9,9,3,9,9,24],backgroundColor:'rgba(29,78,216,0.7)',yAxisID:'y',borderRadius:3},
+      {label:'전체 비중(%)',data:s26Ratio,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',
+       yAxisID:'y2',pointRadius:4,pointBackgroundColor:'#f59e0b',tension:.3,borderWidth:2}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{padding:10,usePointStyle:true,pointStyle:'rectRounded',font:{size:11}}}},
+    scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'건수'}},
+      y2:{position:'right',grid:{display:false},max:60,
+        ticks:{callback:v=>v+'%'},title:{display:true,text:'비중(%)'},color:'#f59e0b'}
+    }
+  }
+});
+
+// Brand doughnut
+new Chart(document.getElementById('brandChart'),{
+  type:'doughnut',
+  data:{
+    labels:['Galaxy/Z 64.4%','iPhone 35.6%'],
+    datasets:[{data:[2572590,1423695],backgroundColor:['rgba(59,130,246,0.7)','rgba(239,68,68,0.7)'],borderWidth:2,borderColor:'#111827'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{padding:10,usePointStyle:true,pointStyle:'rectRounded',font:{size:11}}}}
+  }
+});
+
+// S26 case type doughnut
+new Chart(document.getElementById('typeChart'),{
+  type:'doughnut',
+  data:{
+    labels:['투명 범퍼 젤하드 53.6%','맥세이프 범퍼 23.8%','하드 케이스 10.7%','투명 젤리 10.7%','맥세이프 하드 3.6%'],
+    datasets:[{data:[45,18,9,9,3],
+      backgroundColor:['rgba(29,78,216,0.8)','rgba(59,130,246,0.7)','rgba(96,165,250,0.6)','rgba(147,197,253,0.5)','rgba(186,230,253,0.4)'],
+      borderWidth:2,borderColor:'#111827'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{padding:6,usePointStyle:true,pointStyle:'rectRounded',font:{size:10}}}}
+  }
+});
+</script>
+</body>
+</html>
